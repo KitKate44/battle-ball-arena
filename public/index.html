@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Battle Ball Arena</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ============ BALL SELECTOR SCREEN ============ -->
+  <div id="screen-selector" class="screen active">
+    <header class="site-header">
+      <h1 class="site-title">
+        <span class="title-icon">⚔️</span>
+        Battle Ball Arena
+        <span class="title-icon">⚔️</span>
+      </h1>
+      <p class="site-subtitle">Choose your champion and enter the arena</p>
+    </header>
+
+    <div class="selector-layout">
+      <!-- Player Ball Selection -->
+      <section class="selection-panel" id="player-panel">
+        <div class="panel-header player-header">
+          <span class="panel-badge player-badge">YOU</span>
+          <h2>Choose Your Ball</h2>
+        </div>
+        <div class="balls-grid" id="player-grid"></div>
+      </section>
+
+      <!-- VS Divider + Preview -->
+      <div class="battle-preview">
+        <div class="preview-slot player-preview-slot">
+          <div class="preview-ball" id="preview-player">
+            <span class="preview-placeholder">?</span>
+          </div>
+          <div class="preview-name" id="preview-player-name">Select your ball</div>
+        </div>
+        <div class="vs-center">
+          <div class="vs-text">VS</div>
+          <button id="battle-btn" class="battle-btn" disabled>
+            <span>⚔️</span> BATTLE!
+          </button>
+        </div>
+        <div class="preview-slot opponent-preview-slot">
+          <div class="preview-ball" id="preview-opponent">
+            <span class="preview-placeholder">?</span>
+          </div>
+          <div class="preview-name" id="preview-opponent-name">Select opponent</div>
+        </div>
+      </div>
+
+      <!-- Opponent Ball Selection -->
+      <section class="selection-panel" id="opponent-panel">
+        <div class="panel-header opponent-header">
+          <span class="panel-badge opponent-badge">OPPONENT</span>
+          <h2>Choose Opponent</h2>
+        </div>
+        <div class="balls-grid" id="opponent-grid"></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ============ BATTLE SCREEN ============ -->
+  <div id="screen-battle" class="screen">
+    <div class="battle-layout">
+      <div class="battle-hud">
+        <!-- Player HUD -->
+        <div class="hud-side hud-player">
+          <div class="hud-ball-icon" id="hud-player-icon">⚽</div>
+          <div class="hud-info">
+            <div class="hud-ball-name" id="hud-player-name">Classic</div>
+            <div class="hud-sub">(You)</div>
+            <div class="hp-bar-wrap">
+              <div class="hp-bar-fill player-fill" id="hud-player-hp"></div>
+            </div>
+            <div class="hp-label" id="hud-player-label">200 / 200</div>
+          </div>
+        </div>
+
+        <!-- VS Badge -->
+        <div class="hud-vs">
+          <div class="hud-vs-text">VS</div>
+          <div class="round-timer" id="round-timer">0:00</div>
+        </div>
+
+        <!-- Opponent HUD -->
+        <div class="hud-side hud-opponent">
+          <div class="hud-info hud-info-right">
+            <div class="hud-ball-name" id="hud-opp-name">Fireball</div>
+            <div class="hud-sub">Opponent</div>
+            <div class="hp-bar-wrap">
+              <div class="hp-bar-fill opp-fill" id="hud-opp-hp"></div>
+            </div>
+            <div class="hp-label" id="hud-opp-label">150 / 150</div>
+          </div>
+          <div class="hud-ball-icon" id="hud-opp-icon">🔥</div>
+        </div>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="arena-canvas" width="800" height="450"></canvas>
+      </div>
+
+      <div class="battle-footer">
+        <button id="back-btn" class="back-btn">← Back to Selection</button>
+        <div class="special-info">
+          <span id="player-special-badge" class="special-badge player-sp"></span>
+          <span class="special-vs-label">Specials active</span>
+          <span id="opp-special-badge" class="special-badge opp-sp"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ RESULTS SCREEN ============ -->
+  <div id="screen-results" class="screen">
+    <div class="results-container">
+      <div class="result-header" id="result-header">
+        <div class="result-title" id="result-title">VICTORY!</div>
+        <div class="result-subtitle" id="result-subtitle">Your ball wins!</div>
+      </div>
+
+      <div class="result-balls">
+        <div class="result-ball-card winner-card" id="result-winner-card">
+          <div class="result-ball-preview" id="result-winner-ball"></div>
+          <div class="result-ball-name" id="result-winner-name">Classic</div>
+          <div class="result-crown">👑</div>
+        </div>
+        <div class="result-ball-card loser-card" id="result-loser-card">
+          <div class="result-ball-preview" id="result-loser-ball"></div>
+          <div class="result-ball-name" id="result-loser-name">Fireball</div>
+          <div class="result-crown">💀</div>
+        </div>
+      </div>
+
+      <div class="stats-panel">
+        <h3>Battle Stats</h3>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">Duration</div>
+            <div class="stat-value" id="stat-duration">0:00</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Your Damage</div>
+            <div class="stat-value" id="stat-player-dmg">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Enemy Damage</div>
+            <div class="stat-value" id="stat-opp-dmg">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Your Hits</div>
+            <div class="stat-value" id="stat-player-hits">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-actions">
+        <button class="btn-play-again" id="btn-play-again">⚔️ Play Again</button>
+        <button class="btn-change-ball" id="btn-change-ball">🔄 Change Ball</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

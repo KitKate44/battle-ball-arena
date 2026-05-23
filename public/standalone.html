@@ -361,6 +361,10 @@ body {
 .quest-lock-msg { font-size: 0.7rem; color: var(--text-muted); text-align: center; margin-top: 8px; display: none; }
 .quest-lock-msg.visible { display: block; }
 .quests-all-done { text-align: center; padding: 14px; color: var(--text-muted); font-size: 0.82rem; margin-top: 10px; border: 1px dashed var(--border); border-radius: var(--radius); display: none; }
+.credits-section { max-width: 1400px; margin: 32px auto 24px; padding: 0 24px; text-align: center; }
+.credits-inner { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.75rem; color: var(--text-muted); }
+.credits-inner strong { color: var(--text-secondary); font-weight: 600; }
+.credits-divider { color: var(--border); }
   </style>
 </head>
 <body>
@@ -421,6 +425,16 @@ body {
       <div class="quests-grid" id="quests-grid"></div>
       <div class="quests-all-done" id="quests-all-done">All quests done for today — come back tomorrow! 🌙</div>
     </div>
+
+    <footer class="credits-section">
+      <div class="credits-inner">
+        <span class="credits-item">Created by <strong>Jennifer Pham</strong></span>
+        <span class="credits-divider">·</span>
+        <span class="credits-item">Made for <strong>UHACKATHON 2026</strong></span>
+        <span class="credits-divider">·</span>
+        <span class="credits-item">HTML5 Canvas · Web Audio API · Node.js</span>
+      </div>
+    </footer>
   </div>
 
   <!-- ============ BATTLE SCREEN ============ -->
@@ -635,8 +649,11 @@ const BOUNCE = 1.0;
 let audioCtx = null;
 
 function initGameAudio() {
-  if (audioCtx) return;
-  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {}
+  if (audioCtx) { audioCtx.resume(); return; }
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume();
+  } catch {}
 }
 
 function playWallBounce(speed) {
@@ -688,7 +705,7 @@ class Ball {
     this.colors = data.colors;
     this.x = 0; this.y = 0; this.vx = 0; this.vy = 0;
     this.freezeTimer = 0;
-    this.frozenSpeed = 0;
+    this.baseSpeed = data.stats.speed;
     this.staticTimer = 2 + Math.random() * 2;
     this.hitFlash = 0; this.dead = false; this.wallSoundTimer = 0;
     this.trail = [];
@@ -702,16 +719,15 @@ class Ball {
     this._updateSpecials(dt);
     // Freeze drag (Glacier special) — slows to 25% but never stops, restores on expiry
     if (this.freezeTimer > 0) {
-      const minSpeed = this.frozenSpeed * 0.25;
+      const minSpeed = this.baseSpeed * 0.25;
       const drag = Math.pow(0.88, dt * 60);
       this.vx *= drag; this.vy *= drag;
       const cur = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
       if (cur < minSpeed && cur > 0.01) { this.vx=(this.vx/cur)*minSpeed; this.vy=(this.vy/cur)*minSpeed; }
       this.freezeTimer -= dt;
-      if (this.freezeTimer <= 0 && this.frozenSpeed > 0) {
+      if (this.freezeTimer <= 0) {
         const c = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
-        if (c > 0.01) { this.vx=(this.vx/c)*this.frozenSpeed; this.vy=(this.vy/c)*this.frozenSpeed; }
-        this.frozenSpeed = 0;
+        if (c > 0.01) { this.vx=(this.vx/c)*this.baseSpeed; this.vy=(this.vy/c)*this.baseSpeed; }
       }
     }
     this.x += this.vx * dt * 60;
@@ -925,8 +941,8 @@ class Game {
     b1.totalDamageDealt+=d1; b2.totalDamageDealt+=d2;
     if(b1.id==='shadow') b1.heal(d1*0.2);
     if(b2.id==='shadow') b2.heal(d2*0.2);
-    if(b1.id==='glacier'){b2.frozenSpeed=Math.sqrt(b2.vx*b2.vx+b2.vy*b2.vy);b2.freezeTimer=1.5;}
-    if(b2.id==='glacier'){b1.frozenSpeed=Math.sqrt(b1.vx*b1.vx+b1.vy*b1.vy);b1.freezeTimer=1.5;}
+    if(b1.id==='glacier'){b2.freezeTimer=1.5;}
+    if(b2.id==='glacier'){b1.freezeTimer=1.5;}
     playBallCollision(spd);
     const hitX=b1.x+nx*b1.size, hitY=b1.y+ny*b1.size;
     this._hitBurst(hitX,hitY,spd,b1,b2);

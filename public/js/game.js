@@ -4,8 +4,11 @@
 let audioCtx = null;
 
 function initGameAudio() {
-  if (audioCtx) return;
-  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {}
+  if (audioCtx) { audioCtx.resume(); return; }
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume();
+  } catch {}
 }
 
 function playWallBounce(speed) {
@@ -127,7 +130,7 @@ class Ball {
 
     // Special timers
     this.freezeTimer = 0;
-    this.frozenSpeed = 0;
+    this.baseSpeed = data.stats.speed;
     this.staticTimer = 2 + Math.random() * 2;
 
     // Visual state
@@ -149,9 +152,9 @@ class Ball {
 
     this._updateSpecials(dt);
 
-    // Freeze drag (Glacier special) — slows to 25% but never stops, restores on expiry
+    // Freeze drag (Glacier special) — slows to 25% of base speed, restores to base speed on expiry
     if (this.freezeTimer > 0) {
-      const minSpeed = this.frozenSpeed * 0.25;
+      const minSpeed = this.baseSpeed * 0.25;
       const drag = Math.pow(0.88, dt * 60);
       this.vx *= drag;
       this.vy *= drag;
@@ -161,10 +164,9 @@ class Ball {
         this.vy = (this.vy / cur) * minSpeed;
       }
       this.freezeTimer -= dt;
-      if (this.freezeTimer <= 0 && this.frozenSpeed > 0) {
+      if (this.freezeTimer <= 0) {
         const c = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-        if (c > 0.01) { this.vx = (this.vx / c) * this.frozenSpeed; this.vy = (this.vy / c) * this.frozenSpeed; }
-        this.frozenSpeed = 0;
+        if (c > 0.01) { this.vx = (this.vx / c) * this.baseSpeed; this.vy = (this.vy / c) * this.baseSpeed; }
       }
     }
 
@@ -603,9 +605,9 @@ class Game {
     if (b1.id === 'shadow') b1.heal(dmg1to2 * 0.2);
     if (b2.id === 'shadow') b2.heal(dmg2to1 * 0.2);
 
-    // Freeze (Glacier) — save pre-freeze speed so it can be restored
-    if (b1.id === 'glacier') { b2.frozenSpeed = Math.sqrt(b2.vx*b2.vx + b2.vy*b2.vy); b2.freezeTimer = 1.5; }
-    if (b2.id === 'glacier') { b1.frozenSpeed = Math.sqrt(b1.vx*b1.vx + b1.vy*b1.vy); b1.freezeTimer = 1.5; }
+    // Freeze (Glacier) — freezes opponent; restores to their base speed on expiry
+    if (b1.id === 'glacier') { b2.freezeTimer = 1.5; }
+    if (b2.id === 'glacier') { b1.freezeTimer = 1.5; }
 
     // Sound + hit effects
     playBallCollision(impactSpeed);

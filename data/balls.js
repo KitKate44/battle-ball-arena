@@ -5,7 +5,7 @@ module.exports = [
     icon: '⚽',
     rarity: 'Common',
     description: 'A regular ball.',
-    stats: { health: 200, speed: 4.0, damage: 1.0, size: 22 },
+    stats: { health: 200, speed: 4.0, damage: 1.0, size: 32 },
     colors: { primary: '#d4d4d4', secondary: '#888888', glow: '#ffffff', trail: '#cccccc' },
     special: { name: 'Steady', desc: 'No special ability. Reliable in any matchup.' }
   },
@@ -15,7 +15,7 @@ module.exports = [
     icon: '🔥',
     rarity: 'Rare',
     description: 'Burns bright and hits hard. Low HP but devastating damage.',
-    stats: { health: 150, speed: 5.5, damage: 1.7, size: 18 },
+    stats: { health: 150, speed: 5.5, damage: 1.7, size: 28 },
     colors: { primary: '#ff4500', secondary: '#ff8c00', glow: '#ff6600', trail: '#ff4500' },
     special: { name: 'Ignite', desc: 'Deals +30% extra damage on every hit.' }
   },
@@ -25,7 +25,7 @@ module.exports = [
     icon: '🧊',
     rarity: 'Rare',
     description: 'Outlasts opponents through sheer endurance.',
-    stats: { health: 280, speed: 2.5, damage: 0.9, size: 26 },
+    stats: { health: 280, speed: 2.5, damage: 0.9, size: 36 },
     colors: { primary: '#a8d8ff', secondary: '#00bfff', glow: '#87ceeb', trail: '#00bfff' },
     special: { name: 'Freeze', desc: 'Slows the opponent for 1.5s after each hit.' }
   },
@@ -35,7 +35,7 @@ module.exports = [
     icon: '⚡',
     rarity: 'Epic',
     description: 'Blink and you\'ll miss it.',
-    stats: { health: 120, speed: 7.5, damage: 1.4, size: 15 },
+    stats: { health: 120, speed: 7.5, damage: 1.4, size: 25 },
     colors: { primary: '#ffff00', secondary: '#9b59b6', glow: '#ffff00', trail: '#ffee00' },
     special: { name: 'Static Surge', desc: 'Bursts to 2x speed every 4 seconds.' }
   },
@@ -45,7 +45,7 @@ module.exports = [
     icon: '🪨',
     rarity: 'Epic',
     description: 'Slow but nearly unkillable.',
-    stats: { health: 380, speed: 1.8, damage: 0.75, size: 32 },
+    stats: { health: 380, speed: 1.8, damage: 0.75, size: 42 },
     colors: { primary: '#8b7355', secondary: '#5c4a32', glow: '#c8a96e', trail: '#8b7355' },
     special: { name: 'Quake', desc: 'Causes screen shake and massive knockback on impact.' }
   },
@@ -55,7 +55,7 @@ module.exports = [
     icon: '🌑',
     rarity: 'Legendary',
     description: 'Drains life from every blow it lands.',
-    stats: { health: 175, speed: 5.2, damage: 1.3, size: 20 },
+    stats: { health: 175, speed: 5.2, damage: 1.3, size: 30 },
     colors: { primary: '#6c3483', secondary: '#1a1a2e', glow: '#9b59b6', trail: '#6c3483' },
     special: { name: 'Lifesteal', desc: 'Heals 20% of all damage dealt.' }
   },
@@ -65,7 +65,7 @@ module.exports = [
     icon: '💎',
     rarity: 'Legendary',
     description: 'Deflects a portion of all damage received.',
-    stats: { health: 240, speed: 3.5, damage: 1.0, size: 24 },
+    stats: { health: 240, speed: 3.5, damage: 1.0, size: 34 },
     colors: { primary: '#00ffff', secondary: '#ffffff', glow: '#00ffff', trail: '#00e5ff' },
     special: { name: 'Armor', desc: 'Reduces all incoming damage by 25%.' }
   },
@@ -75,7 +75,7 @@ module.exports = [
     icon: '🔮',
     rarity: 'Legendary',
     description: 'Volatile energy orb. Grows more dangerous as it takes damage.',
-    stats: { health: 145, speed: 5.8, damage: 1.5, size: 17 },
+    stats: { health: 145, speed: 5.8, damage: 1.5, size: 27 },
     colors: { primary: '#ff00ff', secondary: '#8800ff', glow: '#ff00ff', trail: '#cc00ff' },
     special: { name: 'Overload', desc: 'Damage increases up to 80% as HP decreases.' }
   }

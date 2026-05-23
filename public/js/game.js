@@ -21,7 +21,7 @@ function playWallBounce(speed) {
   const freq = 80 + speed * 8;
   osc.frequency.setValueAtTime(freq, t);
   osc.frequency.exponentialRampToValueAtTime(freq * 0.5, t + 0.09);
-  const vol = Math.min(0.18, 0.06 + speed * 0.008);
+  const vol = Math.min(0.5, 0.15 + speed * 0.025);
   gain.gain.setValueAtTime(vol, t);
   gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
   osc.start(t); osc.stop(t + 0.1);

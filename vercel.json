@@ -1,9 +1,3 @@
 {
-  "version": 2,
-  "functions": {
-    "server.js": { "runtime": "nodejs20.x" }
-  },
-  "routes": [
-    { "src": "/(.*)", "dest": "server.js" }
-  ]
+  "rewrites": [{ "source": "/(.*)", "destination": "/server.js" }]
 }

@@ -1,5 +1,50 @@
 'use strict';
 
+/* ───────── Audio ───────── */
+let audioCtx = null;
+
+function initGameAudio() {
+  if (audioCtx) return;
+  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {}
+}
+
+function playWallBounce(speed) {
+  if (!audioCtx || speed < 1.5) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.type = 'sine';
+  const freq = 80 + speed * 8;
+  osc.frequency.setValueAtTime(freq, t);
+  osc.frequency.exponentialRampToValueAtTime(freq * 0.5, t + 0.09);
+  const vol = Math.min(0.18, 0.06 + speed * 0.008);
+  gain.gain.setValueAtTime(vol, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+  osc.start(t); osc.stop(t + 0.1);
+}
+
+function playBallCollision(speed) {
+  if (!audioCtx || speed < 0.6) return;
+  const t = audioCtx.currentTime;
+  const vol = Math.min(0.4, 0.08 + speed * 0.022);
+  const bufSize = Math.ceil(audioCtx.sampleRate * 0.12);
+  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = Math.min(1400, 250 + speed * 50);
+  filter.Q.value = 0.7;
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(vol, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+  src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+  src.start(t); src.stop(t + 0.15);
+}
+
 /* ───────── Particle ───────── */
 class Particle {
   constructor(x, y, vx, vy, color, life, size) {
@@ -89,6 +134,7 @@ class Ball {
     this.hitFlash = 0;
     this.dead = false;
     this.trail = [];
+    this.wallSoundTimer = 0;
 
     // Stats
     this.totalDamageDealt = 0;
@@ -128,10 +174,11 @@ class Ball {
 
     // Wall bounce
     const pad = 8;
-    if (this.x - this.size < pad)      { this.vx =  Math.abs(this.vx) * BOUNCE; this.x = pad + this.size; }
-    if (this.x + this.size > W - pad)  { this.vx = -Math.abs(this.vx) * BOUNCE; this.x = W - pad - this.size; }
-    if (this.y - this.size < pad)      { this.vy =  Math.abs(this.vy) * BOUNCE; this.y = pad + this.size; }
-    if (this.y + this.size > H - pad)  { this.vy = -Math.abs(this.vy) * BOUNCE; this.y = H - pad - this.size; }
+    if (this.wallSoundTimer > 0) this.wallSoundTimer -= dt;
+    if (this.x - this.size < pad)      { this.vx =  Math.abs(this.vx) * BOUNCE; this.x = pad + this.size;        if (this.wallSoundTimer <= 0) { playWallBounce(Math.abs(this.vx)); this.wallSoundTimer = 0.08; } }
+    if (this.x + this.size > W - pad)  { this.vx = -Math.abs(this.vx) * BOUNCE; this.x = W - pad - this.size;    if (this.wallSoundTimer <= 0) { playWallBounce(Math.abs(this.vx)); this.wallSoundTimer = 0.08; } }
+    if (this.y - this.size < pad)      { this.vy =  Math.abs(this.vy) * BOUNCE; this.y = pad + this.size;         if (this.wallSoundTimer <= 0) { playWallBounce(Math.abs(this.vy)); this.wallSoundTimer = 0.08; } }
+    if (this.y + this.size > H - pad)  { this.vy = -Math.abs(this.vy) * BOUNCE; this.y = H - pad - this.size;    if (this.wallSoundTimer <= 0) { playWallBounce(Math.abs(this.vy)); this.wallSoundTimer = 0.08; } }
 
     // Trail
     this.trail.push({ x: this.x, y: this.y });
@@ -560,7 +607,8 @@ class Game {
     if (b1.id === 'glacier') { b2.frozenSpeed = Math.sqrt(b2.vx*b2.vx + b2.vy*b2.vy); b2.freezeTimer = 1.5; }
     if (b2.id === 'glacier') { b1.frozenSpeed = Math.sqrt(b1.vx*b1.vx + b1.vy*b1.vy); b1.freezeTimer = 1.5; }
 
-    // Hit effects
+    // Sound + hit effects
+    playBallCollision(impactSpeed);
     const hitX = b1.x + nx * b1.size;
     const hitY = b1.y + ny * b1.size;
     this._hitBurst(hitX, hitY, impactSpeed, b1, b2);

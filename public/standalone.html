@@ -336,6 +336,31 @@ body {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 3px; }
+
+/* ===== DAILY QUESTS ===== */
+.quests-section { max-width: 1400px; margin: 0 auto; padding: 20px 28px 40px; border-top: 1px solid var(--border); }
+.quests-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.quests-title { font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); }
+.quests-reset-time { font-size: 0.68rem; color: var(--text-muted); margin-left: auto; }
+.quests-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (max-width: 700px) { .quests-grid { grid-template-columns: 1fr; } }
+.quest-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; transition: border-color 0.3s; }
+.quest-card.done { border-color: #44cc77; }
+.quest-header-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.quest-header-row .quest-label { margin-bottom: 0; }
+.quest-icon { font-size: 1.2rem; flex-shrink: 0; line-height: 1.2; }
+.quest-label { font-size: 0.8rem; font-weight: 600; color: var(--text); margin-bottom: 8px; line-height: 1.3; }
+.quest-card.done .quest-label { color: var(--text-muted); }
+.quest-progress-wrap { height: 5px; background: rgba(255,255,255,0.07); border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
+.quest-progress-fill { height: 100%; background: #666666; border-radius: 3px; transition: width 0.4s ease; }
+.quest-card.done .quest-progress-fill { background: #44cc77; }
+.quest-status { display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; color: var(--text-muted); }
+.quest-badge { font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #44cc77; }
+.quest-btn { background: #222222; border: 1px solid #444444; color: #eeeeee; border-radius: 4px; padding: 3px 10px; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: background 0.15s; }
+.quest-btn:hover { background: #333333; }
+.quest-lock-msg { font-size: 0.7rem; color: var(--text-muted); text-align: center; margin-top: 8px; display: none; }
+.quest-lock-msg.visible { display: block; }
+.quests-all-done { text-align: center; padding: 14px; color: var(--text-muted); font-size: 0.82rem; margin-top: 10px; border: 1px dashed var(--border); border-radius: var(--radius); display: none; }
   </style>
 </head>
 <body>
@@ -370,6 +395,7 @@ body {
           <button id="battle-btn" class="battle-btn" disabled>
             <span>⚔️</span> BATTLE!
           </button>
+          <div class="quest-lock-msg" id="quest-lock-msg">Complete today's quests to unlock ↓</div>
         </div>
         <div class="preview-slot">
           <div class="preview-ball" id="preview-opponent"><span>?</span></div>
@@ -384,6 +410,16 @@ body {
         </div>
         <div class="balls-grid" id="opponent-grid"></div>
       </section>
+    </div>
+
+    <div class="quests-section">
+      <div class="quests-header">
+        <span>📋</span>
+        <span class="quests-title">Daily Quests</span>
+        <span class="quests-reset-time" id="quests-reset-time"></span>
+      </div>
+      <div class="quests-grid" id="quests-grid"></div>
+      <div class="quests-all-done" id="quests-all-done">All quests done for today — come back tomorrow! 🌙</div>
     </div>
   </div>
 
@@ -594,6 +630,53 @@ class FloatingText {
 const BOUNCE = 1.0;
 
 /* ══════════════════════════════════
+   AUDIO
+══════════════════════════════════ */
+let audioCtx = null;
+
+function initGameAudio() {
+  if (audioCtx) return;
+  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {}
+}
+
+function playWallBounce(speed) {
+  if (!audioCtx || speed < 1.5) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.type = 'sine';
+  const freq = 80 + speed * 8;
+  osc.frequency.setValueAtTime(freq, t);
+  osc.frequency.exponentialRampToValueAtTime(freq * 0.5, t + 0.09);
+  const vol = Math.min(0.18, 0.06 + speed * 0.008);
+  gain.gain.setValueAtTime(vol, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+  osc.start(t); osc.stop(t + 0.1);
+}
+
+function playBallCollision(speed) {
+  if (!audioCtx || speed < 0.6) return;
+  const t = audioCtx.currentTime;
+  const vol = Math.min(0.4, 0.08 + speed * 0.022);
+  const bufSize = Math.ceil(audioCtx.sampleRate * 0.12);
+  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = Math.min(1400, 250 + speed * 50);
+  filter.Q.value = 0.7;
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(vol, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+  src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+  src.start(t); src.stop(t + 0.15);
+}
+
+/* ══════════════════════════════════
    BALL
 ══════════════════════════════════ */
 class Ball {
@@ -607,7 +690,7 @@ class Ball {
     this.freezeTimer = 0;
     this.frozenSpeed = 0;
     this.staticTimer = 2 + Math.random() * 2;
-    this.hitFlash = 0; this.dead = false;
+    this.hitFlash = 0; this.dead = false; this.wallSoundTimer = 0;
     this.trail = [];
     this.totalDamageDealt = 0; this.totalDamageTaken = 0; this.hitCount = 0;
   }
@@ -634,10 +717,11 @@ class Ball {
     this.x += this.vx * dt * 60;
     this.y += this.vy * dt * 60;
     const pad = 8;
-    if (this.x - this.size < pad)     { this.vx =  Math.abs(this.vx) * BOUNCE; this.x = pad + this.size; }
-    if (this.x + this.size > W - pad) { this.vx = -Math.abs(this.vx) * BOUNCE; this.x = W - pad - this.size; }
-    if (this.y - this.size < pad)     { this.vy =  Math.abs(this.vy) * BOUNCE; this.y = pad + this.size; }
-    if (this.y + this.size > H - pad) { this.vy = -Math.abs(this.vy) * BOUNCE; this.y = H - pad - this.size; }
+    if (this.wallSoundTimer > 0) this.wallSoundTimer -= dt;
+    if (this.x - this.size < pad)     { this.vx =  Math.abs(this.vx) * BOUNCE; this.x = pad + this.size;      if (this.wallSoundTimer <= 0) { playWallBounce(Math.abs(this.vx)); this.wallSoundTimer = 0.08; } }
+    if (this.x + this.size > W - pad) { this.vx = -Math.abs(this.vx) * BOUNCE; this.x = W - pad - this.size;  if (this.wallSoundTimer <= 0) { playWallBounce(Math.abs(this.vx)); this.wallSoundTimer = 0.08; } }
+    if (this.y - this.size < pad)     { this.vy =  Math.abs(this.vy) * BOUNCE; this.y = pad + this.size;       if (this.wallSoundTimer <= 0) { playWallBounce(Math.abs(this.vy)); this.wallSoundTimer = 0.08; } }
+    if (this.y + this.size > H - pad) { this.vy = -Math.abs(this.vy) * BOUNCE; this.y = H - pad - this.size;   if (this.wallSoundTimer <= 0) { playWallBounce(Math.abs(this.vy)); this.wallSoundTimer = 0.08; } }
     this.trail.push({ x: this.x, y: this.y });
     if (this.trail.length > 18) this.trail.shift();
     if (this.hitFlash > 0) this.hitFlash -= dt * 4;
@@ -843,6 +927,7 @@ class Game {
     if(b2.id==='shadow') b2.heal(d2*0.2);
     if(b1.id==='glacier'){b2.frozenSpeed=Math.sqrt(b2.vx*b2.vx+b2.vy*b2.vy);b2.freezeTimer=1.5;}
     if(b2.id==='glacier'){b1.frozenSpeed=Math.sqrt(b1.vx*b1.vx+b1.vy*b1.vy);b1.freezeTimer=1.5;}
+    playBallCollision(spd);
     const hitX=b1.x+nx*b1.size, hitY=b1.y+ny*b1.size;
     this._hitBurst(hitX,hitY,spd,b1,b2);
     this.shakeIntensity=(b1.id==='boulder'||b2.id==='boulder')?22:(spd>5?10:5);
@@ -927,6 +1012,117 @@ class Game {
 }
 
 /* ══════════════════════════════════
+   DAILY QUESTS
+══════════════════════════════════ */
+const QUEST_POOL = [
+  { id: 'meditate',  type: 'checkin', target: 1,  icon: '🧘', label: 'Meditate for 5 minutes',      badge: 'Mindful' },
+  { id: 'walk',      type: 'checkin', target: 1,  icon: '🚶', label: 'Go for a short walk',          badge: 'Explorer' },
+  { id: 'stretch',   type: 'checkin', target: 1,  icon: '🤸', label: 'Stretch for 5 minutes',        badge: 'Flexible' },
+  { id: 'journal',   type: 'checkin', target: 1,  icon: '📓', label: 'Write in your journal',        badge: 'Reflective' },
+  { id: 'breathe',   type: 'checkin', target: 1,  icon: '💨', label: 'Take 10 deep breaths',         badge: 'Calm' },
+  { id: 'friend',    type: 'checkin', target: 1,  icon: '💬', label: 'Text or call a friend',        badge: 'Connected' },
+  { id: 'sleep',     type: 'checkin', target: 1,  icon: '😴', label: 'Got 7+ hours of sleep',        badge: 'Well-Rested' },
+  { id: 'outside',   type: 'checkin', target: 1,  icon: '🌿', label: 'Spend 10 minutes outside',     badge: 'Grounded' },
+  { id: 'pushups',   type: 'counter', target: 10, icon: '💪', label: 'Do 10 push-ups',              badge: 'Iron Arms',   inc: 5 },
+  { id: 'squats',    type: 'counter', target: 15, icon: '🦵', label: 'Do 15 squats',                badge: 'Strong Legs', inc: 5 },
+  { id: 'water',     type: 'counter', target: 3,  icon: '💧', label: 'Drink 3 glasses of water',    badge: 'Hydrated',    inc: 1 },
+  { id: 'situps',    type: 'counter', target: 10, icon: '🏋️', label: 'Do 10 sit-ups',              badge: 'Core Power',  inc: 5 },
+  { id: 'jumping',   type: 'counter', target: 20, icon: '⚡', label: 'Do 20 jumping jacks',         badge: 'Energized',   inc: 5 },
+  { id: 'reading',   type: 'checkin', target: 1,  icon: '📖', label: 'Read for 10 minutes',         badge: 'Bookworm' },
+  { id: 'nophone',   type: 'checkin', target: 1,  icon: '📵', label: 'Take a 30-min phone break',   badge: 'Unplugged' },
+];
+
+let dailyQuests = [];
+
+function _questDateKey() { return new Date().toISOString().slice(0, 10); }
+
+function _pickQuests() {
+  let seed = _questDateKey().split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const rng = () => { seed = (seed * 1664525 + 1013904223) & 0x7fffffff; return seed / 0x7fffffff; };
+  const pool = [...QUEST_POOL];
+  const out = [];
+  while (out.length < 3 && pool.length) {
+    const i = Math.floor(rng() * pool.length);
+    out.push({ ...pool.splice(i, 1)[0], progress: 0, done: false });
+  }
+  return out;
+}
+
+function initQuests() {
+  const key = _questDateKey();
+  try {
+    const raw = localStorage.getItem('bba_quests');
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (d.date === key) { dailyQuests = d.quests; }
+      else { dailyQuests = _pickQuests(); _saveQuests(); }
+    } else { dailyQuests = _pickQuests(); _saveQuests(); }
+  } catch { dailyQuests = _pickQuests(); _saveQuests(); }
+
+  const grid = document.getElementById('quests-grid');
+  if (grid) {
+    grid.addEventListener('click', e => {
+      const btn = e.target.closest('[data-quest-action]');
+      if (!btn) return;
+      const quest = dailyQuests.find(q => q.id === btn.dataset.questId);
+      if (!quest || quest.done) return;
+      if (btn.dataset.questAction === 'checkin') {
+        quest.progress = quest.target;
+      } else if (btn.dataset.questAction === 'add') {
+        quest.progress = Math.min(quest.target, quest.progress + quest.inc);
+      }
+      if (quest.progress >= quest.target) quest.done = true;
+      _saveQuests();
+      renderQuests();
+    });
+  }
+  renderQuests();
+}
+
+function _saveQuests() {
+  localStorage.setItem('bba_quests', JSON.stringify({ date: _questDateKey(), quests: dailyQuests }));
+}
+
+function renderQuests() {
+  const grid = document.getElementById('quests-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  dailyQuests.forEach(q => {
+    const pct = Math.min(100, Math.round(q.progress / q.target * 100));
+    const actionBtn = q.done
+      ? `<span class="quest-badge">${q.badge}</span>`
+      : q.type === 'checkin'
+        ? `<button class="quest-btn" data-quest-action="checkin" data-quest-id="${q.id}">Mark Done</button>`
+        : `<button class="quest-btn" data-quest-action="add" data-quest-id="${q.id}">+${q.inc}</button>`;
+    const card = document.createElement('div');
+    card.className = 'quest-card' + (q.done ? ' done' : '');
+    card.innerHTML = `
+      <div class="quest-header-row">
+        <span class="quest-icon">${q.icon}</span>
+        <div class="quest-label">${q.done ? '✓ ' : ''}${q.label}</div>
+      </div>
+      <div class="quest-progress-wrap"><div class="quest-progress-fill" style="width:${pct}%"></div></div>
+      <div class="quest-status">
+        <span>${q.done ? 'Complete' : q.type === 'counter' ? `${q.progress} / ${q.target}` : ''}</span>
+        ${actionBtn}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  const allDone = dailyQuests.every(q => q.done);
+  const doneEl = document.getElementById('quests-all-done');
+  if (doneEl) doneEl.style.display = allDone ? 'block' : 'none';
+  const resetEl = document.getElementById('quests-reset-time');
+  if (resetEl) {
+    const now = new Date(), midnight = new Date();
+    midnight.setHours(24, 0, 0, 0);
+    const s = Math.floor((midnight - now) / 1000);
+    resetEl.textContent = `Resets in ${Math.floor(s / 3600)}h ${Math.floor(s % 3600 / 60)}m`;
+  }
+  updateBattleButton();
+}
+
+/* ══════════════════════════════════
    APP LOGIC
 ══════════════════════════════════ */
 let selectedPlayer = null, selectedOpponent = null, activeGame = null;
@@ -969,7 +1165,7 @@ function renderGrid(gridId, role) {
       card.dataset.role = role;
       if(role==='player'){selectedPlayer=ball;updatePreview('player',ball);}
       else{selectedOpponent=ball;updatePreview('opponent',ball);}
-      document.getElementById('battle-btn').disabled=!(selectedPlayer&&selectedOpponent);
+      updateBattleButton();
     });
     card.dataset.role = role;
     grid.appendChild(card);
@@ -987,8 +1183,17 @@ function updatePreview(role, ball) {
   nameEl.style.color=role==='player'?'#ffffff':'#888888';
 }
 
+function updateBattleButton() {
+  const questsDone = dailyQuests.length > 0 && dailyQuests.every(q => q.done);
+  const btn = document.getElementById('battle-btn');
+  const lockMsg = document.getElementById('quest-lock-msg');
+  if (btn) btn.disabled = !(questsDone && selectedPlayer && selectedOpponent);
+  if (lockMsg) lockMsg.classList.toggle('visible', !questsDone);
+}
+
 function startBattle() {
   if(!selectedPlayer||!selectedOpponent) return;
+  initGameAudio();
   showScreen('battle');
   const p=selectedPlayer, o=selectedOpponent;
   document.getElementById('hud-player-icon').textContent=p.icon;
@@ -1055,6 +1260,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('back-btn').addEventListener('click',goBack);
   document.getElementById('btn-play-again').addEventListener('click',playAgain);
   document.getElementById('btn-change-ball').addEventListener('click',changeBall);
+  initQuests();
 });
   </script>
 </body>

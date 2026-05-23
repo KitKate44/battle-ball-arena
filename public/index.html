@@ -42,6 +42,7 @@
           <button id="battle-btn" class="battle-btn" disabled>
             <span>⚔️</span> BATTLE!
           </button>
+          <div class="quest-lock-msg" id="quest-lock-msg">Complete today's quests to unlock ↓</div>
         </div>
         <div class="preview-slot opponent-preview-slot">
           <div class="preview-ball" id="preview-opponent">
@@ -59,6 +60,16 @@
         </div>
         <div class="balls-grid" id="opponent-grid"></div>
       </section>
+    </div>
+
+    <div class="quests-section">
+      <div class="quests-header">
+        <span>📋</span>
+        <span class="quests-title">Daily Quests</span>
+        <span class="quests-reset-time" id="quests-reset-time"></span>
+      </div>
+      <div class="quests-grid" id="quests-grid"></div>
+      <div class="quests-all-done" id="quests-all-done">All quests done for today — come back tomorrow! 🌙</div>
     </div>
   </div>
 
